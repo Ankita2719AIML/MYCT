@@ -1,0 +1,37 @@
+Resource Usage & Hardware Specifications
+==========================================
+
+System Hardware Information:
+- Platform: Windows 11
+- CPU: Multi-core processor
+- Memory: System RAM utilized for training
+- GPU: CUDA-enabled (if available)
+
+Training Resource Metrics:
+- Memory usage tracking enabled
+- CPU utilization monitoring
+- GPU memory usage (if applicable)
+- Training time per epoch
+- Model size and complexity metrics
+
+Performance Tracking Files:
+- 2_EPOCH_BY_EPOCH_TRAINING_LOGS.csv: Detailed epoch training metrics
+- logs/autoencoder_training.csv: Autoencoder specific training data
+- Training duration and resource consumption per component
+
+Memory Optimization:
+- Batch size: 32 (optimized for memory usage)
+- Data loading: Efficient preprocessing pipeline
+- Model checkpointing: Enabled for recovery
+
+Computational Requirements:
+- TensorFlow/Keras backend
+- NumPy vectorized operations
+- Scikit-learn algorithms
+- XGBoost/LightGBM ensemble methods
+
+Resource files in this folder contain:
+- Training logs with resource consumption
+- Performance monitoring data
+- Hardware utilization statistics
+- Training efficiency metrics

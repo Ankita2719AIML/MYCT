@@ -1,0 +1,59 @@
+{
+  "data": {
+    "dataset_path": "C:/Users/priya/OneDrive/Desktop/MYCT_TASK/archive/MYCT_pics_updated",
+    "image_size": [224, 224],
+    "validation_split": 0.2,
+    "test_split": 0.2,
+    "random_state": 42
+  },
+  "preprocessing": {
+    "save_intermediate": true,
+    "noise_reduction": true,
+    "orientation_correction": true
+  },
+  "autoencoder": {
+    "epochs": 25,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "latent_dim": 128,
+    "anomaly_threshold_percentile": 95,
+    "optimizer": "adam",
+    "loss_function": "binary_crossentropy",
+    "regularization": {
+      "l2_lambda": 0.001,
+      "dropout_rate": 0.2,
+      "batch_norm": true
+    }
+  },
+  "cnn": {
+    "epochs": 25,
+    "batch_size": 32,
+    "learning_rate": 0.001,
+    "optimizer": "adam",
+    "loss_function": "categorical_crossentropy",
+    "early_stopping_patience": 15,
+    "regularization": {
+      "l2_lambda": 0.0001,
+      "dropout_rate": 0.3,
+      "batch_norm": true
+    }
+  },
+  "cross_validation": {
+    "k_folds": 5,
+    "cv_type": "stratified",
+    "random_state": 42
+  },
+  "trust_scores": {
+    "threshold": 0.7,
+    "calculate_component_trust": true,
+    "calculate_overall_trust": true
+  },
+  "output": {
+    "save_models": true,
+    "save_visualizations": true,
+    "save_results": true,
+    "generate_pdf_report": true,
+    "create_archive": true,
+    "results_dir": "C:/Users/priya/OneDrive/Desktop/MYCT_TASK/results"
+  }
+}

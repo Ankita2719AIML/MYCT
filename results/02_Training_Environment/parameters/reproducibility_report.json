@@ -1,0 +1,47 @@
+{
+    "system_info": {
+        "tensorflow_version": "2.20.0",
+        "numpy_version": "2.2.6",
+        "python_version": "3.13.5",
+        "timestamp": "2026-02-01T03:07:59.464037",
+        "random_seeds": {
+            "numpy": "2147483648",
+            "tensorflow": "633403114639854065"
+        }
+    },
+    "training_parameters": {
+        "Autoencoder": {
+            "learning_rate": 0.001,
+            "batch_size": 32,
+            "epochs": 25,
+            "optimizer": "adam",
+            "loss_function": "binary_crossentropy",
+            "latent_dim": 128,
+            "early_stopping_patience": 15,
+            "lr_reduction_factor": 0.2,
+            "lr_reduction_patience": 8,
+            "min_learning_rate": 1e-05,
+            "regularization": {
+                "l2_lambda": 0.001,
+                "dropout_rate": 0.2,
+                "batch_norm": true
+            }
+        }
+    },
+    "training_metadata": {
+        "data_split": {
+            "train_size": 600,
+            "validation_size": 200,
+            "test_size": 200,
+            "total_samples": 1000,
+            "split_ratios": {
+                "train": 0.6,
+                "validation": 0.2,
+                "test": 0.2
+            },
+            "random_state": 42,
+            "stratified": true
+        }
+    },
+    "reproducibility_score": 1.0
+}

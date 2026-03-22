@@ -1,0 +1,34 @@
+Dataset Information Summary
+============================
+
+Dataset Name: MYCT Signature Dataset
+Location: archive/MYCT_pics_updated/
+Structure:
+- train/ (Training data)
+  - forged/ (Forged signatures)
+  - genuine/ (Genuine signatures)
+- test/ (Test data)  
+  - forged/ (Forged signatures)
+  - genuine/ (Genuine signatures)
+- val/ (Validation data)
+  - forged/ (Forged signatures)
+  - genuine/ (Genuine signatures)
+
+Image Specifications:
+- Target Size: 224x224 pixels
+- Format: PNG/JPG images
+- Channel: Grayscale (1 channel)
+
+Split Configuration:
+- Validation Split: 20%
+- Test Split: 20%
+- Random State: 42 (for reproducibility)
+
+Preprocessing Applied:
+- Noise reduction: Enabled
+- Orientation correction: Enabled
+- Image normalization: Applied
+- Data augmentation: Applied during training
+
+Dataset Configuration:
+- See dataset_configuration.json for complete settings
