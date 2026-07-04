@@ -16,9 +16,13 @@ warnings.filterwarnings('ignore')
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 # Import all required modules
+# pyrefly: ignore [missing-import]
 from enhanced_training_system import ParameterTracker, TrainingVisualizer, CrossValidator, TrustScoreCalculator
+# pyrefly: ignore [missing-import]
 from results_generator import ResultsGenerator, create_autoencoder_model_builder, create_cnn_model_builder
+# pyrefly: ignore [missing-import]
 from autoencoder_forgery_detection import SignatureAutoencoder
+# pyrefly: ignore [missing-import]
 from data_preprocessing import SignaturePreprocessor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -363,6 +367,15 @@ class EnhancedTrainingPipeline:
             autoencoder_results=ae_trust_data,
             cv_results=cv_results
         )
+        
+        # Run DTS ablation study
+        if 'stratified_k_fold' in cv_results:
+            ablation_results = self.results_generator.trust_calculator.tune_trust_weights_via_ablation(cv_results['stratified_k_fold'])
+            self.results_generator.all_results['dts_ablation_study'] = ablation_results
+            
+            # Save ablation results specifically
+            ablation_df = ablation_results['ablation_results_df']
+            ablation_df.to_csv(self.results_generator.results_dir / "trust_scores" / "dts_ablation_results.csv", index=False)
         
         print(f"✅ Trust scores calculated:")
         for component, score in trust_scores.items():

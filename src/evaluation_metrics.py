@@ -274,7 +274,7 @@ class BiometricEvaluator:
         plt.show()
         
     def plot_confusion_matrices(self, model_results, save_path=None, figsize=(15, 5)):
-        """Plot confusion matrices for multiple models"""
+        """Plot confusion matrices for multiple models and explicitly save them separately."""
         n_models = len(model_results)
         fig, axes = plt.subplots(1, n_models, figsize=figsize)
         
@@ -294,7 +294,23 @@ class BiometricEvaluator:
             axes[i].set_title(f'{model_name}')
             axes[i].set_xlabel('Predicted')
             axes[i].set_ylabel('Actual')
-        
+            
+            # Save individual confusion matrix explicitly
+            if save_path:
+                save_dir = os.path.dirname(save_path)
+                plt.figure(figsize=(6, 5))
+                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                           xticklabels=['Forged', 'Genuine'],
+                           yticklabels=['Forged', 'Genuine'])
+                plt.title(f'Confusion Matrix - {model_name}')
+                plt.xlabel('Predicted Label')
+                plt.ylabel('True Label')
+                plt.tight_layout()
+                plt.savefig(os.path.join(save_dir, f'confusion_matrix_{model_name.replace(" ", "_")}.png'), dpi=300, bbox_inches='tight')
+                plt.close()
+                
+        # Return to the main figure
+        plt.figure(fig.number)
         plt.tight_layout()
         
         if save_path:
@@ -390,7 +406,26 @@ class BiometricEvaluator:
         if all_metrics:
             metrics_df = pd.DataFrame(all_metrics)
             summary_stats = metrics_df.describe().to_dict()
-            report['statistical_summary'] = summary_stats
+            
+            # Simple statistical significance check across models
+            stat_tests = {}
+            if len(all_metrics) > 1 and 'accuracy' in metrics_df.columns:
+                try:
+                    import scipy.stats as stats
+                    acc_values = [[val] for val in metrics_df['accuracy'].values]
+                    f_stat, p_val = stats.f_oneway(*acc_values)
+                    stat_tests['anova_accuracy'] = {
+                        'f_statistic': float(f_stat),
+                        'p_value': float(p_val),
+                        'significant_difference': bool(p_val < 0.05)
+                    }
+                except Exception as e:
+                    stat_tests['error'] = str(e)
+            
+            report['statistical_summary'] = {
+                'descriptive': summary_stats,
+                'significance_tests': stat_tests
+            }
         
         # Target performance analysis
         target_metrics = {

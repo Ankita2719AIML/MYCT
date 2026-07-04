@@ -474,9 +474,12 @@ class CrossValidator:
 class TrustScoreCalculator:
     """Calculate trust scores for model components and overall system"""
     
-    def __init__(self):
+    def __init__(self, lambda1=0.4, lambda2=0.3, lambda3=0.3):
         self.component_scores = {}
         self.overall_score = 0.0
+        self.lambda1 = lambda1
+        self.lambda2 = lambda2
+        self.lambda3 = lambda3
     
     def calculate_autoencoder_trust(self, reconstruction_errors: np.ndarray, 
                                   threshold: float, genuine_labels: np.ndarray) -> float:
@@ -546,7 +549,7 @@ class TrustScoreCalculator:
         if 'accuracy' in cross_val_scores:
             performance_level = np.mean(cross_val_scores['accuracy'])
         
-        self.overall_score = 0.4 * component_avg + 0.3 * cv_consistency + 0.3 * performance_level
+        self.overall_score = self.lambda1 * component_avg + self.lambda2 * cv_consistency + self.lambda3 * performance_level
         
         return self.overall_score
     
@@ -587,3 +590,46 @@ class TrustScoreCalculator:
             recommendations.append("System shows good reliability across all components")
         
         return recommendations
+        
+    def tune_trust_weights_via_ablation(self, cross_val_scores: Dict[str, List[float]]) -> Dict:
+        """Justify DTS weight parameters via ablation study (grid search)"""
+        print("\\nStarting DTS Weight Parameters Ablation Study...")
+        best_score = -1
+        best_weights = {}
+        ablation_results = []
+        
+        # Grid search for lambda1 and lambda2
+        for l1 in np.linspace(0.1, 0.8, 8):
+            for l2 in np.linspace(0.1, 0.8, 8):
+                l3 = 1.0 - (l1 + l2)
+                if l3 >= 0:
+                    self.lambda1 = l1
+                    self.lambda2 = l2
+                    self.lambda3 = l3
+                    
+                    score = self.calculate_overall_trust(cross_val_scores)
+                    ablation_results.append({
+                        'lambda1': l1,
+                        'lambda2': l2,
+                        'lambda3': l3,
+                        'overall_trust_score': score
+                    })
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_weights = {'lambda1': l1, 'lambda2': l2, 'lambda3': l3}
+        
+        # Reset to best weights
+        self.lambda1 = best_weights['lambda1']
+        self.lambda2 = best_weights['lambda2']
+        self.lambda3 = best_weights['lambda3']
+        
+        # Save ablation results
+        ablation_df = pd.DataFrame(ablation_results)
+        
+        print(f"Optimal DTS weights found: λ1={self.lambda1:.2f}, λ2={self.lambda2:.2f}, λ3={self.lambda3:.2f}")
+        return {
+            'best_weights': best_weights,
+            'best_score': best_score,
+            'ablation_results_df': ablation_df
+        }
