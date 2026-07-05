@@ -24,7 +24,7 @@ class BiometricEvaluator:
         
     def calculate_biometric_metrics(self, y_true, y_pred, y_pred_proba=None):
         """Calculate comprehensive biometric authentication metrics"""
-        
+            
         # Basic classification metrics
         accuracy = accuracy_score(y_true, y_pred)
         precision = precision_score(y_true, y_pred, pos_label=1)  # Genuine = 1

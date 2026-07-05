@@ -273,6 +273,14 @@ class SignatureAuthenticationPipeline:
         
         self.results['cnn_evaluation'] = cnn_results
         
+        # Export architecture summary
+        arch_path = os.path.join(self.config['output']['results_dir'], 'reports', 'cnn_architecture_summary.json')
+        os.makedirs(os.path.dirname(arch_path), exist_ok=True)
+        try:
+            self.components['cnn'].export_architecture_summary(arch_path)
+        except Exception as e:
+            print(f"Failed to export CNN architecture: {e}")
+        
         # Visualize training history
         if self.config['output']['save_visualizations']:
             viz_dir = os.path.join(self.config['output']['results_dir'], 'visualizations')

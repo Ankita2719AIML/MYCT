@@ -9,6 +9,9 @@ import argparse
 import json
 from datetime import datetime
 
+import matplotlib
+matplotlib.use('Agg')
+
 # Add src directory to path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 

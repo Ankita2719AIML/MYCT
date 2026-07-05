@@ -482,6 +482,29 @@ class SignatureCNN:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
 
+    def export_architecture_summary(self, save_path):
+        """Export the model's structural parameters matching Table 3 layout"""
+        if self.model is None:
+            self.build_cnn_model()
+            
+        architecture = []
+        for layer in self.model.layers:
+            layer_type = layer.__class__.__name__
+            # Only include major layers to match tabular style
+            if layer_type in ['Conv2D', 'MaxPooling2D', 'ReLU', 'Dense', 'GlobalAveragePooling2D']:
+                output_shape = str(layer.output_shape)
+                params = layer.count_params()
+                architecture.append({
+                    "Layer (type)": layer_type,
+                    "Output Shape": output_shape,
+                    "Param#": f"{params:,}"
+                })
+                
+        import json
+        with open(save_path, 'w') as f:
+            json.dump(architecture, f, indent=4)
+        print(f"CNN architecture summary exported to {save_path}")
+
 
 if __name__ == "__main__":
     # Initialize CNN
