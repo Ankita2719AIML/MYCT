@@ -81,6 +81,10 @@ class ResultsGenerator:
         visualization_path = self.visualizer.plot_training_curves(
             training_history, component_name
         )
+        # Generate the separated visualizations to match PDF format
+        self.visualizer.plot_loss_vs_epochs(training_history, component_name)
+        self.visualizer.plot_loss_components(training_history, component_name)
+        self.visualizer.plot_training_stability(training_history, component_name)
         
         # Store in results
         self.all_results[component_name] = {

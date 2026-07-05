@@ -152,9 +152,7 @@ class TrainingVisualizer:
             axes[0, 1].legend()
             axes[0, 1].grid(True, alpha=0.3)
         else:
-            axes[0, 1].text(0.5, 0.5, 'Accuracy metrics\nnot available', 
-                           ha='center', va='center', transform=axes[0, 1].transAxes)
-            axes[0, 1].set_title('Accuracy vs Epochs')
+            axes[0, 1].axis('off')
         
         # Trust score progression
         if trust_scores:
@@ -166,9 +164,7 @@ class TrainingVisualizer:
             axes[0, 2].legend()
             axes[0, 2].grid(True, alpha=0.3)
         else:
-            axes[0, 2].text(0.5, 0.5, 'Trust scores\nnot available', 
-                           ha='center', va='center', transform=axes[0, 2].transAxes)
-            axes[0, 2].set_title('Trust Score Progression')
+            axes[0, 2].axis('off')
         
         # Learning rate schedule (if available)
         if 'lr' in history:
@@ -180,9 +176,7 @@ class TrainingVisualizer:
             axes[1, 0].legend()
             axes[1, 0].grid(True, alpha=0.3)
         else:
-            axes[1, 0].text(0.5, 0.5, 'Learning rate\nschedule not tracked', 
-                           ha='center', va='center', transform=axes[1, 0].transAxes)
-            axes[1, 0].set_title('Learning Rate Schedule')
+            axes[1, 0].axis('off')
         
         # Loss components breakdown (if available)
         if 'mse' in history and 'mae' in history:
@@ -198,9 +192,7 @@ class TrainingVisualizer:
             axes[1, 1].legend()
             axes[1, 1].grid(True, alpha=0.3)
         else:
-            axes[1, 1].text(0.5, 0.5, 'Loss components\nnot available', 
-                           ha='center', va='center', transform=axes[1, 1].transAxes)
-            axes[1, 1].set_title('Loss Components')
+            axes[1, 1].axis('off')
         
         # Training stability metrics
         if len(history['loss']) > 1:
@@ -213,9 +205,7 @@ class TrainingVisualizer:
             axes[1, 2].legend()
             axes[1, 2].grid(True, alpha=0.3)
         else:
-            axes[1, 2].text(0.5, 0.5, 'Insufficient data\nfor stability analysis', 
-                           ha='center', va='center', transform=axes[1, 2].transAxes)
-            axes[1, 2].set_title('Training Stability')
+            axes[1, 2].axis('off')
         
         plt.tight_layout()
         
@@ -257,6 +247,141 @@ class TrainingVisualizer:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
         
+        return str(save_path)
+    
+    def plot_loss_vs_epochs(self, history: dict, component_name: str) -> str:
+        """Plot Training vs Validation Loss (Figure 7 equivalent)"""
+        fig, ax = plt.subplots(figsize=(8, 5))
+        epochs = range(1, len(history['loss']) + 1)
+        
+        ax.plot(epochs, history['loss'], 'b-', label='Training Loss', linewidth=2)
+        if 'val_loss' in history:
+            ax.plot(epochs, history['val_loss'], 'C1-', label='Validation Loss', linewidth=2)
+            
+        ax.set_title(f'Training vs Validation Loss', fontweight='bold')
+        ax.set_xlabel('Epochs', fontweight='bold')
+        ax.set_ylabel('Loss', fontweight='bold')
+        ax.set_xlim(1, len(epochs))
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        plt.tight_layout()
+        save_path = self.save_dir / f"{component_name.lower()}_loss_vs_epochs.png"
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        return str(save_path)
+
+    def plot_loss_components(self, history: dict, component_name: str) -> str:
+        """Plot Loss Components MSE & MAE (Figure 8 equivalent)"""
+        if 'mse' not in history or 'mae' not in history:
+            return ""
+            
+        fig, ax = plt.subplots(figsize=(8, 5))
+        epochs = range(1, len(history['loss']) + 1)
+        
+        ax.plot(epochs, history['mse'], 'b-', label='MSE', linewidth=2)
+        ax.plot(epochs, history['mae'], 'C1-', label='MAE', linewidth=2)
+        
+        ax.set_title(f'Loss Components (MSE & MAE)', fontweight='bold')
+        ax.set_xlabel('Epochs', fontweight='bold')
+        ax.set_ylabel('Loss Component Value', fontweight='bold')
+        ax.set_xlim(1, len(epochs))
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        plt.tight_layout()
+        save_path = self.save_dir / f"{component_name.lower()}_loss_components.png"
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        return str(save_path)
+
+    def plot_training_stability(self, history: dict, component_name: str) -> str:
+        """Plot Training Stability Loss Gradient (Figure 12 equivalent)"""
+        if len(history['loss']) <= 1:
+            return ""
+            
+        fig, ax = plt.subplots(figsize=(8, 5))
+        epochs = range(1, len(history['loss']) + 1)
+        loss_diff = np.diff(history['loss'])
+        
+        # Insert a 0 at the beginning to align with epochs
+        loss_change = np.insert(loss_diff, 0, 0)
+        
+        ax.plot(epochs, loss_change, 'b-', linewidth=2, label='Loss Change')
+        ax.axhline(y=0, color='k', linewidth=0.5)
+        
+        ax.set_title(f'Training Stability (Loss Gradient)', fontweight='bold')
+        ax.set_xlabel('Epochs', fontweight='bold')
+        ax.set_ylabel('Loss Change', fontweight='bold')
+        ax.set_xlim(1, len(epochs))
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+        
+        plt.tight_layout()
+        save_path = self.save_dir / f"{component_name.lower()}_training_stability.png"
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        return str(save_path)
+
+    def plot_pca_explained_variance(self, explained_variance_ratio: np.ndarray, threshold: float = 0.95) -> str:
+        """Plot PCA Explained Variance (Figure 15 equivalent)"""
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+        
+        n_components = len(explained_variance_ratio)
+        cumsum = np.cumsum(explained_variance_ratio)
+        
+        axes[0].bar(range(1, n_components + 1), explained_variance_ratio, color='#1f77b4')
+        axes[0].set_ylabel('Explained Variance Ratio')
+        axes[0].set_title('Individual Explained Variance')
+        
+        axes[1].plot(range(1, n_components + 1), cumsum, 'b-', linewidth=2)
+        axes[1].axhline(y=threshold, color='r', linestyle='--', label=f'Threshold: {threshold}')
+        axes[1].set_ylabel('Cumulative Explained Variance Ratio')
+        axes[1].set_title('Cumulative Explained Variance')
+        axes[1].legend()
+        
+        plt.tight_layout()
+        save_path = self.save_dir / 'pca_explained_variance.png'
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        return str(save_path)
+
+    def plot_reconstruction_error_distribution(self, genuine_errors: np.ndarray, forged_errors: np.ndarray, threshold: float) -> str:
+        """Plot Reconstruction Error Distribution (Figure 11 equivalent)"""
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        from sklearn.metrics import roc_curve, auc
+        
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        ax.hist(genuine_errors, bins=50, alpha=0.7, label='Genuine', color='#1f77b4')
+        ax.hist(forged_errors, bins=50, alpha=0.7, label='Forged', color='#ff7f0e')
+        ax.axvline(x=threshold, color='b', linestyle='--', label=f'Threshold: {threshold:.4f}')
+        
+        ax.set_title('RECONSTRUCTION ERROR DISTRIBUTION', fontsize=10, fontweight='bold')
+        ax.set_xlabel('RECONSTRUCTION ERROR', fontsize=8)
+        ax.set_ylabel('FREQUENCY', fontsize=8)
+        ax.legend(fontsize=8)
+        
+        # Calculate ROC data
+        y_true = np.concatenate([np.ones_like(genuine_errors), np.zeros_like(forged_errors)])
+        # Invert errors so lower error -> higher probability of being genuine
+        y_scores = -np.concatenate([genuine_errors, forged_errors])
+        fpr, tpr, _ = roc_curve(y_true, y_scores)
+        roc_auc = auc(fpr, tpr)
+        
+        # Inset ROC Curve
+        axins = inset_axes(ax, width="40%", height="40%", loc="upper right")
+        axins.plot(fpr, tpr, color='#1f77b4', label=f'ROC Curve (AUC = {roc_auc:.2f})')
+        axins.plot([0, 1], [0, 1], 'k--', alpha=0.5)
+        axins.set_title('ROC CURVE', fontsize=8, fontweight='bold')
+        axins.set_xlabel('FALSE POSITIVE RATE', fontsize=6)
+        axins.set_ylabel('TRUE POSITIVE RATE', fontsize=6)
+        axins.tick_params(labelsize=6)
+        axins.legend(fontsize=6)
+        
+        save_path = self.save_dir / 'reconstruction_error_distribution.png'
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
         return str(save_path)
     
     def plot_trust_score_analysis(self, trust_scores: Dict[str, float], 

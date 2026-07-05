@@ -23,6 +23,12 @@ from results_generator import ResultsGenerator, create_autoencoder_model_builder
 # pyrefly: ignore [missing-import]
 from autoencoder_forgery_detection import SignatureAutoencoder
 # pyrefly: ignore [missing-import]
+from cnn_feature_extractor import SignatureCNN
+# pyrefly: ignore [missing-import]
+from pca_gbm_classifier import PCAFeatureReducer, GBMClassifier
+# pyrefly: ignore [missing-import]
+from evaluation_metrics import BiometricEvaluator
+# pyrefly: ignore [missing-import]
 from data_preprocessing import SignaturePreprocessor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
@@ -287,6 +293,163 @@ class EnhancedTrainingPipeline:
         print("✅ Autoencoder training completed and logged!")
         
         return autoencoder, history.history
+        
+    def train_cnn_with_tracking(self, data_dict):
+        """Train CNN with comprehensive parameter tracking"""
+        print("\\n🤖 Training CNN with Enhanced Tracking...")
+        
+        train_data, train_labels = data_dict['train']
+        val_data, val_labels = data_dict['validation']
+        
+        # Convert labels to categorical for CNN
+        train_labels_cat = tf.keras.utils.to_categorical(train_labels, 2)
+        val_labels_cat = tf.keras.utils.to_categorical(val_labels, 2)
+        
+        # Initialize CNN
+        cnn = SignatureCNN(input_shape=(*self.config['data']['image_size'], 1))
+        
+        # Compile model
+        cnn_model = cnn.compile_model(
+            learning_rate=self.config['cnn']['learning_rate']
+        )
+        
+        # Define callbacks
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(
+                monitor='val_loss',
+                patience=self.config['cnn']['early_stopping_patience'],
+                restore_best_weights=True
+            ),
+            tf.keras.callbacks.CSVLogger(
+                str(self.results_generator.results_dir / "logs" / "cnn_training.csv")
+            )
+        ]
+        
+        print(f"🔄 Training CNN for {self.config['cnn']['epochs']} epochs...")
+        history = cnn.train(
+            X_train=train_data,
+            y_train=train_labels_cat,
+            X_val=val_data,
+            y_val=val_labels_cat,
+            epochs=self.config['cnn']['epochs'],
+            batch_size=self.config['cnn']['batch_size'],
+            callbacks=callbacks
+        )
+        
+        training_params = {
+            'learning_rate': self.config['cnn']['learning_rate'],
+            'batch_size': self.config['cnn']['batch_size'],
+            'epochs': self.config['cnn']['epochs'],
+            'optimizer': self.config['cnn']['optimizer'],
+            'loss_function': self.config['cnn']['loss_function']
+        }
+        
+        self.results_generator.log_training_session(
+            component_name="CNN",
+            model=cnn,
+            training_history=history.history,
+            training_params=training_params,
+            regularization_params=self.config['cnn']['regularization']
+        )
+        
+        print("✅ CNN training completed and logged!")
+        return cnn, history.history
+
+    def apply_pca_and_train_gbm(self, data_dict, cnn):
+        """Apply PCA and Train GBM with tracking"""
+        print("\\n🔄 Extracting features, applying PCA, and training GBM...")
+        
+        train_data, train_labels = data_dict['train']
+        test_data, test_labels = data_dict['test']
+        
+        print("Extracting features using CNN...")
+        train_features = cnn.extract_features(train_data)
+        test_features = cnn.extract_features(test_data)
+        
+        print("Applying PCA dimensionality reduction...")
+        pca = PCAFeatureReducer(variance_threshold=0.95)
+        pca_train = pca.fit_transform(train_features)
+        pca_test = pca.transform(test_features)
+        
+        # Save PCA variance plot manually
+        pca_save_path = str(self.results_generator.results_dir / "visualizations" / "pca_explained_variance.png")
+        pca.plot_explained_variance(save_path=pca_save_path)
+        
+        print("Training GBM Classifier...")
+        gbm = GBMClassifier(model_type='xgboost')
+        gbm.fit(pca_train, train_labels)
+        
+        training_params = {
+            'pca_variance_threshold': 0.95,
+            'gbm_model_type': 'xgboost'
+        }
+        
+        # Since GBM is not iterative in this wrapper, we mock an empty history to satisfy the logger
+        empty_history = {'loss': [0], 'val_loss': [0]}
+        
+        self.results_generator.log_training_session(
+            component_name="PCA_GBM",
+            model=gbm,
+            training_history=empty_history,
+            training_params=training_params
+        )
+        
+        print("✅ PCA and GBM training completed!")
+        return pca, gbm, pca_test
+
+    def comprehensive_evaluation(self, autoencoder, cnn, gbm, pca_test, data_dict):
+        """Evaluate all models to produce comprehensive comparison charts"""
+        print("\\n📊 Performing Comprehensive Multi-Model Evaluation...")
+        
+        test_data, test_labels = data_dict['test']
+        
+        model_results = {}
+        
+        # 1. CNN Evaluation
+        cnn_pred = cnn.predict(test_data)
+        cnn_pred_classes = np.argmax(cnn_pred, axis=1)
+        cnn_pred_proba = cnn_pred[:, 1]
+        model_results['CNN'] = {
+            'y_true': test_labels,
+            'y_pred': cnn_pred_classes,
+            'y_pred_proba': cnn_pred_proba
+        }
+        
+        # 2. GBM Evaluation
+        gbm_pred = gbm.predict(pca_test)
+        gbm_pred_proba = gbm.model.predict_proba(pca_test)[:, 1] if hasattr(gbm.model, 'predict_proba') else gbm_pred
+        model_results['GBM'] = {
+            'y_true': test_labels,
+            'y_pred': gbm_pred,
+            'y_pred_proba': gbm_pred_proba
+        }
+        
+        # 3. Autoencoder Evaluation
+        ae_res = autoencoder.detect_forgery(test_data)
+        ae_pred = 1 - ae_res['predictions']
+        ae_scores = 1 - ae_res['reconstruction_errors']
+        ae_scores = (ae_scores - np.min(ae_scores)) / (np.max(ae_scores) - np.min(ae_scores) + 1e-9)
+        model_results['Autoencoder'] = {
+            'y_true': test_labels,
+            'y_pred': ae_pred,
+            'y_pred_proba': ae_scores
+        }
+        
+        evaluator = BiometricEvaluator()
+        viz_dir = str(self.results_generator.results_dir / "visualizations")
+        
+        print("Generating ROC comparison...")
+        evaluator.plot_roc_curves(model_results, save_path=os.path.join(viz_dir, 'models_roc_comparison.png'))
+        print("Generating DET comparison...")
+        evaluator.plot_det_curves(model_results, save_path=os.path.join(viz_dir, 'models_det_comparison.png'))
+        print("Generating PR comparison...")
+        evaluator.plot_precision_recall_curves(model_results, save_path=os.path.join(viz_dir, 'models_pr_comparison.png'))
+        print("Generating Metrics comparison...")
+        evaluator.plot_metrics_comparison(model_results, metrics=['accuracy', 'precision', 'recall', 'f1_score'], save_path=os.path.join(viz_dir, 'models_metrics_comparison.png'))
+        print("Generating Confusion matrices...")
+        evaluator.plot_confusion_matrices(model_results, save_path=os.path.join(viz_dir, 'models_confusion_matrices.png'))
+        
+        print("✅ Comprehensive evaluation charts generated successfully!")
     
     def perform_cross_validation(self, data_dict, autoencoder):
         """Perform comprehensive cross-validation analysis"""
@@ -362,6 +525,17 @@ class EnhancedTrainingPipeline:
             'true_labels': autoencoder_results['true_labels']
         }
         
+        # Extract genuine and forged errors for visualization
+        y_true = autoencoder_results['true_labels']
+        errors = autoencoder_results['reconstruction_errors']
+        genuine_errors = errors[y_true == 1]  # Assuming Genuine = 1
+        forged_errors = errors[y_true == 0]   # Assuming Forged = 0
+        
+        # Generate reconstruction error distribution plot
+        self.results_generator.visualizer.plot_reconstruction_error_distribution(
+            genuine_errors, forged_errors, autoencoder_results['threshold']
+        )
+        
         # Calculate trust scores
         trust_scores = self.results_generator.calculate_comprehensive_trust_scores(
             autoencoder_results=ae_trust_data,
@@ -406,13 +580,22 @@ class EnhancedTrainingPipeline:
             # Step 2: Train autoencoder with tracking
             autoencoder, ae_history = self.train_autoencoder_with_tracking(data_dict)
             
-            # Step 3: Perform cross-validation
+            # Step 3: Train CNN with tracking
+            cnn, cnn_history = self.train_cnn_with_tracking(data_dict)
+            
+            # Step 4: Apply PCA and Train GBM
+            pca, gbm, pca_test = self.apply_pca_and_train_gbm(data_dict, cnn)
+            
+            # Step 5: Perform cross-validation
             cv_results = self.perform_cross_validation(data_dict, autoencoder)
             
-            # Step 4: Calculate trust scores
+            # Step 6: Calculate trust scores
             trust_scores = self.calculate_trust_scores(autoencoder, data_dict, cv_results)
             
-            # Step 5: Generate final results
+            # Step 7: Comprehensive Multi-Model Evaluation
+            self.comprehensive_evaluation(autoencoder, cnn, gbm, pca_test, data_dict)
+            
+            # Step 8: Generate final results
             final_outputs = self.generate_final_results()
             
             # Calculate execution time
