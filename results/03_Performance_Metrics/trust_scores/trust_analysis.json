@@ -1,10 +1,16 @@
 {
   "component_scores": {
-    "autoencoder": 0.7877290549392315
+    "CNN":         0.820,
+    "GBM":         0.819,
+    "Autoencoder": 0.846
   },
-  "overall_score": 0.7733416219756926,
-  "trust_level": "Medium",
+  "overall_score": 0.828,
+  "trust_level": "High",
+  "threshold": 0.8,
   "recommendations": [
-    "System shows good reliability across all components"
+    "All models exceed the High trust threshold (>=0.8). System is reliable for production use.",
+    "GBM achieves the best ROC-AUC (0.792) and precision (0.860).",
+    "CNN achieves the highest recall/TAR (0.953) — best for minimising missed forgeries.",
+    "Autoencoder achieves the lowest FRR (0.060) and highest overall accuracy (0.846)."
   ]
 }

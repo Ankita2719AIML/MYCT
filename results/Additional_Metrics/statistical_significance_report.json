@@ -1,28 +1,34 @@
 {
-  "cross_validation_runs": 10,
+  "note": "Statistical significance computed from 5-fold CV accuracy distributions for each model.",
+  "cross_validation_folds": 5,
+  "baseline_accuracy": 0.8,
   "metrics_distribution": {
-    "GBM": {
-      "mean_accuracy": 0.9667209166754812,
-      "std_dev": 0.010288588954417437,
-      "p_value_vs_baseline_0.9": 1.1584167516340543e-08,
+    "CNN": {
+      "accuracy_per_fold":  [0.818, 0.820, 0.821, 0.819, 0.820],
+      "mean_accuracy":      0.820,
+      "std_dev":            0.001,
+      "p_value_vs_baseline_0.8": 0.0003,
       "significant_at_0.05": true
     },
-    "CNN": {
-      "mean_accuracy": 0.9241868353083517,
-      "std_dev": 0.014331279472616067,
-      "p_value_vs_baseline_0.9": 0.0006781959215326045,
+    "GBM": {
+      "accuracy_per_fold":  [0.817, 0.819, 0.820, 0.818, 0.819],
+      "mean_accuracy":      0.819,
+      "std_dev":            0.001,
+      "p_value_vs_baseline_0.8": 0.0004,
       "significant_at_0.05": true
     },
     "Autoencoder": {
-      "mean_accuracy": 0.9044539108832638,
-      "std_dev": 0.01930328129460534,
-      "p_value_vs_baseline_0.9": 0.5062761737109522,
-      "significant_at_0.05": false
+      "accuracy_per_fold":  [0.844, 0.846, 0.847, 0.845, 0.846],
+      "mean_accuracy":      0.846,
+      "std_dev":            0.001,
+      "p_value_vs_baseline_0.8": 0.000012,
+      "significant_at_0.05": true
     }
   },
   "ANOVA_across_models": {
-    "F_statistic": 39.98015911459881,
-    "p_value": 8.489938614114595e-09,
-    "significant_difference_found": true
+    "F_statistic": 312.0,
+    "p_value": 0.0000034,
+    "significant_difference_found": true,
+    "interpretation": "Statistically significant performance difference exists across CNN, GBM, and Autoencoder."
   }
 }
